@@ -7,4 +7,5 @@ build:
 deploy:
   kubectl:
     manifests:
-      - ./src/store/kubernetes/*
+      - k8s/*.yaml
+  kubeContext: minikube  # Default
