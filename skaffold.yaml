@@ -1,0 +1,10 @@
+apiVersion: skaffold/v2beta4
+kind: Config
+build:
+  artifacts:
+  - image: django-store
+    context: src/store
+deploy:
+  kubectl:
+    manifests:
+      - ./src/store/kubernetes/*
