@@ -2,10 +2,11 @@ apiVersion: skaffold/v2beta4
 kind: Config
 build:
   artifacts:
-  - image: django-store
-    context: src/store
+    - image: django-store
+      context: src/store
 deploy:
-  kubectl:
-    manifests:
-      - k8s/*.yaml
-  kubeContext: minikube  # Default
+  # kubectl:
+  #   manifests:
+  #     - k8s/*.yaml
+  kustomize: {}
+  kubeContext: minikube # Default
