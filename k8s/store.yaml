@@ -29,10 +29,12 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: RACK_ENV
-              value: "development"
             - name: POSTGRES_HOST
               value: "postgres-service"
           envFrom:
             - configMapRef:
                 name: postgres-configuration
+      initContainers:
+        - name: init-store-container
+          image: busybox:1.28
+          command: ["sh", "-c", "echo Sleeping... && sleep 20 && echo Done."]

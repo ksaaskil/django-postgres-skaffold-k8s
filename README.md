@@ -31,6 +31,12 @@ $ skaffold delete
 
 See what Skaffold deploys:
 
-```bahs
+```bash
 $ skaffold render
+```
+
+Connect to Postgres at forwarded port (here assumed to be 5433):
+
+```bash
+$ PGPASSWORD=super-secret sql -p 5433 -h 127.0.0.1 -Upostgres-user django-db
 ```

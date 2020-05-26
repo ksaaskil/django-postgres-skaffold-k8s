@@ -7,7 +7,7 @@ metadata:
     app: postgres
 data:
   POSTGRES_DB: "django-db"
-  POSTGRES_USER: ""
+  POSTGRES_USER: "postgres-user"
   POSTGRES_PASSWORD: "super-secret" # TODO: Get from secret
 ---
 apiVersion: apps/v1
@@ -36,6 +36,21 @@ spec:
           ports:
             - containerPort: 5432
               name: postgresdb
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - "-c"
+                - "echo 'Ready'"
+                # - psql -U$POSTGRES_USER -d$POSTGRES_DB -c "SELECT 1"
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+      volumes:
+        - name: postgres-data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
