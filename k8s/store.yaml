@@ -38,3 +38,26 @@ spec:
         - name: init-store-container
           image: busybox:1.28
           command: ["sh", "-c", "echo Sleeping... && sleep 20 && echo Done."]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: django-migrations-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: django-migration
+          image: django-store
+          command: ["/bin/sh", "-c"]
+          args:
+            [
+              "echo Waiting... && sleep 20 && echo Running migration... && python manage.py migrate",
+            ]
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres-service"
+          envFrom:
+            - configMapRef:
+                name: postgres-configuration
+      restartPolicy: Never
