@@ -1,6 +1,12 @@
 # Django store
 
-Run locally:
+First create the required Postgres database:
+
+```bash
+$ createdb django-db
+```
+
+Then run locally:
 
 ```bash
 $ docker build -t django-store .

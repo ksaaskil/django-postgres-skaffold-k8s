@@ -1,3 +1,4 @@
 django
 pylint
 black
+psycopg2
