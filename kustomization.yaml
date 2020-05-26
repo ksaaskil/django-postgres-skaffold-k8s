@@ -1,3 +1,4 @@
 # namespace: dev-skaffold
 resources:
   - k8s/store.yaml
+  - k8s/postgres.yaml
