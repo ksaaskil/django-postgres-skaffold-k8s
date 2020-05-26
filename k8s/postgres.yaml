@@ -8,7 +8,44 @@ metadata:
 data:
   POSTGRES_DB: "django-db"
   POSTGRES_USER: "postgres-user"
-  POSTGRES_PASSWORD: "super-secret" # TODO: Get from secret
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /var/lib/postgres-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  volumeName: postgres-pv
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: Opaque
+data:
+  password: c3VwZXItc2VjcmV0
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -33,11 +70,17 @@ spec:
           envFrom:
             - configMapRef:
                 name: postgres-configuration
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
           ports:
             - containerPort: 5432
               name: postgresdb
           volumeMounts:
-            - name: postgres-data
+            - name: postgres-volume-mount
               mountPath: /var/lib/postgresql/data
           readinessProbe:
             exec:
@@ -58,6 +101,9 @@ spec:
       volumes:
         - name: postgres-data
           emptyDir: {}
+        - name: postgres-volume-mount
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service

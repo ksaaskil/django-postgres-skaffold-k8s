@@ -31,6 +31,11 @@ spec:
           env:
             - name: POSTGRES_HOST
               value: "postgres-service"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
           envFrom:
             - configMapRef:
                 name: postgres-configuration
@@ -38,7 +43,7 @@ spec:
         - name: init-store-container
           image: busybox:1.28
           # Ugly hack to wait for fixed time before starting Django
-          command: ["sh", "-c", "echo Sleeping... && sleep 20 && echo Done."]
+          command: ["sh", "-c", "echo Sleeping... && sleep 30 && echo Done."]
 ---
 # Ugly hack to run Django migrations after a given time
 # Should not be run automatically in any real environment
@@ -47,19 +52,26 @@ kind: Job
 metadata:
   name: django-migrations-job
 spec:
+  backoffLimit: 5
   template:
     spec:
       containers:
         - name: django-migration
           image: django-store
           command: ["/bin/sh", "-c"]
+          # Ugly hack to wait for given time until postgres is ready
           args:
             [
-              "echo Waiting... && sleep 15 && echo Running migration... && python manage.py migrate",
+              "echo Waiting... && sleep 25 && echo Running migration... && python manage.py migrate",
             ]
           env:
             - name: POSTGRES_HOST
               value: "postgres-service"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
           envFrom:
             - configMapRef:
                 name: postgres-configuration
