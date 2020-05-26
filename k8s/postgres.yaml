@@ -44,8 +44,15 @@ spec:
               command:
                 - bash
                 - "-c"
-                - "echo 'Ready'"
-                # - psql -U$POSTGRES_USER -d$POSTGRES_DB -c "SELECT 1"
+                - "psql -U$POSTGRES_USER -d$POSTGRES_DB -c 'SELECT 1'"
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - "-c"
+                - "psql -U$POSTGRES_USER -d$POSTGRES_DB -c 'SELECT 1'"
             initialDelaySeconds: 15
             timeoutSeconds: 2
       volumes:

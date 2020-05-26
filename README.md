@@ -1,6 +1,8 @@
-# Example Skaffold project
+# Django + Postgres + Skaffold + Kubernetes
 
-## Prerequisites
+Example [Django](https://www.djangoproject.com/) application running on [Postgres](https://www.postgresql.org/) with Kubernetes deployment using [Skaffold](https://skaffold.dev/). See [`skaffold.yaml`](./skaffold.yaml) for Skaffold configuration.
+
+## ⚠️ Pre-requisites
 
 - [Minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/)
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)

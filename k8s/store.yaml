@@ -37,6 +37,7 @@ spec:
       initContainers:
         - name: init-store-container
           image: busybox:1.28
+          # Ugly hack to wait for fixed time before starting Django
           command: ["sh", "-c", "echo Sleeping... && sleep 20 && echo Done."]
 ---
 # Ugly hack to run Django migrations after a given time
