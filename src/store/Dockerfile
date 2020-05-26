@@ -4,5 +4,5 @@ RUN mkdir /store
 WORKDIR /store
 COPY . /store/
 RUN pip install -r requirements.txt
-
+RUN python manage.py collectstatic
 CMD ["gunicorn", "store.wsgi"]
