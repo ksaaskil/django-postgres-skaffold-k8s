@@ -43,9 +43,9 @@ spec:
         - name: init-store-container
           image: busybox:1.28
           # Ugly hack to wait for fixed time before starting Django
-          command: ["sh", "-c", "echo Sleeping... && sleep 30 && echo Done."]
+          command: ["sh", "-c", "echo Sleeping... && sleep 1 && echo Done."]
 ---
-# Ugly hack to run Django migrations after a given time
+# Ugly hack to run Django migrations with a Kubernetes job
 # Should not be run automatically in any real environment
 apiVersion: batch/v1
 kind: Job
@@ -59,11 +59,7 @@ spec:
         - name: django-migration
           image: django-store
           command: ["/bin/sh", "-c"]
-          # Ugly hack to wait for given time until postgres is ready
-          args:
-            [
-              "echo Waiting... && sleep 25 && echo Running migration... && python manage.py migrate",
-            ]
+          args: ["echo Running migration... && python manage.py migrate"]
           env:
             - name: POSTGRES_HOST
               value: "postgres-service"
