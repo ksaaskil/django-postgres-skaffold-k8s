@@ -39,6 +39,8 @@ spec:
           image: busybox:1.28
           command: ["sh", "-c", "echo Sleeping... && sleep 20 && echo Done."]
 ---
+# Ugly hack to run Django migrations after a given time
+# Should not be run automatically in any real environment
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -52,7 +54,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             [
-              "echo Waiting... && sleep 20 && echo Running migration... && python manage.py migrate",
+              "echo Waiting... && sleep 15 && echo Running migration... && python manage.py migrate",
             ]
           env:
             - name: POSTGRES_HOST
