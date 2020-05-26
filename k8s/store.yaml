@@ -10,6 +10,26 @@ spec:
   selector:
     app: store
 ---
+# https://stackoverflow.com/questions/42078080/add-nginx-conf-to-kubernetes-cluster/42078899
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    http {
+      server {
+        listen 8080;
+        location / {
+            proxy_pass http://localhost:8000;
+        }
+
+        location /images/ {
+            root /data;
+        }
+      }
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -39,11 +59,23 @@ spec:
           envFrom:
             - configMapRef:
                 name: postgres-configuration
+        - name: store-nginx
+          image: nginx:1.14.2
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          ports:
+            - containerPort: 80
       initContainers:
         - name: init-store-container
           image: busybox:1.28
           # Ugly hack to wait for fixed time before starting Django
           command: ["sh", "-c", "echo Sleeping... && sleep 1 && echo Done."]
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
 ---
 # Ugly hack to run Django migrations with a Kubernetes job
 # Should not be run automatically in any real environment
@@ -58,8 +90,7 @@ spec:
       containers:
         - name: django-migration
           image: django-store
-          command: ["/bin/sh", "-c"]
-          args: ["echo Running migration... && python manage.py migrate"]
+          command: ["python", "manage.py", "migrate"]
           env:
             - name: POSTGRES_HOST
               value: "postgres-service"
