@@ -13,11 +13,11 @@ Example [Django](https://www.djangoproject.com/) application running on [Postgre
 
 The project uses [Skaffold](https://skaffold.dev/) to build resources and deploy to Kubernetes. See the configuration in [`./skaffold.yaml`](./skaffold.yaml) and manifests in [`k8s/`](./k8s) folder.
 
-Postgres data is persisted to `/var/lib/postgres-data` by default, so you need to create the folder and add permissions to access it:
+If you want to persist Postgres data, you can create a folder such as `~/postgres-data` and mount it to Minikube:
 
 ```bash
-$ sudo mkdir /var/lib/postgres-data
-$ sudo chown -R $USER /var/lib/postgres-data
+$ mkdir ~/postgres-data
+$ minikube mount ~/postgres-data:/mnt1/postgres-data
 ```
 
 Run in build and deploy in development mode:
@@ -48,4 +48,24 @@ Connect to Postgres at forwarded port (here assumed to be 5433):
 
 ```bash
 $ PGPASSWORD=super-secret sql -p 5433 -h 127.0.0.1 -Upostgres-user django-db
+```
+
+## Debugging
+
+List pods:
+
+```bash
+$ kubectl get pods
+```
+
+Access Python in Django pod (replace pod name with your `store` pod):
+
+```bash
+$ kubectl exec store-c756f498c-frn6m -it -- python manage.py shell
+```
+
+Access `psql` in Postgres container:
+
+```bash
+$ kubectl exec postgres-statefulset-0 -it -- psql -Upostgres-user -ddjango-db
 ```

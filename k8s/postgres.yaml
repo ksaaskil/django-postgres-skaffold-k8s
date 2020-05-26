@@ -31,7 +31,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /var/lib/postgres-data
+    path: /mnt1/postgres-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
