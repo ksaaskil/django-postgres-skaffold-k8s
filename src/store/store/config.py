@@ -8,27 +8,15 @@ import os
 
 
 def postgres():
-
-    DEFAULTS = {
-        "username": "",
-        "db_name": "django-db",
-        "password": "",
-        "host": "127.0.0.1",
-        "port": 5432,
-    }
-
     SETTINGS = {
-        "username": os.environ.get("POSTGRES_USER", DEFAULTS["username"]),
-        "db_name": os.environ.get("POSTGRES_DB", DEFAULTS["password"]),
-        "host": os.environ.get("POSTGRES_HOST", DEFAULTS["host"]),
-        "password": os.environ.get("POSTGRES_PASSWORD", DEFAULTS["password"]),
+        "username": os.environ.get("POSTGRES_USER", ""),
+        "db_name": os.environ.get("POSTGRES_DB", "django-db"),
+        "host": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
+        "password": os.environ.get("POSTGRES_PASSWORD", ""),
         "port": os.environ.get("POSTGRES_PORT", 5432),
     }
 
-    return {
-        k: v_default if k not in SETTINGS or SETTINGS[k] is None else SETTINGS[k]
-        for k, v_default in DEFAULTS.items()
-    }
+    return SETTINGS
 
 
 POSTGRES_CONFIG = postgres()
