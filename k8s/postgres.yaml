@@ -45,6 +45,7 @@ metadata:
   name: postgres-credentials
 type: Opaque
 data:
+  # TODO This should not be in version control in real deployments
   password: c3VwZXItc2VjcmV0
 ---
 apiVersion: apps/v1
