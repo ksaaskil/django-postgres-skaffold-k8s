@@ -47,7 +47,7 @@ $ skaffold render
 Connect to Postgres at forwarded port (here assumed to be 5433):
 
 ```bash
-$ PGPASSWORD=super-secret sql -p 5433 -h 127.0.0.1 -Upostgres-user django-db
+$ psql -p 5433 -h 127.0.0.1 -Upostgres-user django-db
 ```
 
 ## Debugging
@@ -61,7 +61,7 @@ $ kubectl get pods
 Access Python in Django pod (replace pod name with your `store` pod):
 
 ```bash
-$ kubectl exec store-c756f498c-frn6m -it -- python manage.py shell
+$ kubectl exec $PODNAME -it -- python manage.py shell
 ```
 
 Access `psql` in Postgres container:

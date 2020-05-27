@@ -1,5 +1,3 @@
 django
-pylint
-black
-psycopg2
 gunicorn
+psycopg2
