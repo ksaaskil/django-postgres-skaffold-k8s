@@ -17,7 +17,7 @@ metadata:
   name: nginx-config
 data:
   nginx.conf: |
-
+    # https://docs.gunicorn.org/en/latest/deploy.html#nginx-configuration
     # user nobody nogroup;
     # 'user nobody nobody;' for systems with 'nobody' as a group instead
     error_log  /var/log/nginx/error.log warn;
