@@ -4,6 +4,10 @@ build:
   artifacts:
     - image: django-store
       context: src/store
+    - image: django-store-nginx
+      context: src/store
+      docker:
+        dockerfile: Dockerfile.nginx
 deploy:
   # kubectl:
   #   manifests:

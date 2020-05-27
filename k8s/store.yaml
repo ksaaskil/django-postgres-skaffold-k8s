@@ -75,12 +75,16 @@ spec:
           envFrom:
             - configMapRef:
                 name: postgres-configuration
+        # - name: store-nginx
+        #   image: nginx:1.16.1
+        #   volumeMounts:
+        #     - name: nginx-config
+        #       mountPath: /etc/nginx/nginx.conf
+        #       subPath: nginx.conf
+        #   ports:
+        #     - containerPort: 8080
         - name: store-nginx
-          image: nginx:1.16.1
-          volumeMounts:
-            - name: nginx-config
-              mountPath: /etc/nginx/nginx.conf
-              subPath: nginx.conf
+          image: django-store-nginx
           ports:
             - containerPort: 8080
       initContainers:
