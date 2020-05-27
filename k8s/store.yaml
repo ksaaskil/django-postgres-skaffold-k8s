@@ -4,8 +4,8 @@ metadata:
   name: django-store-service
 spec:
   ports:
-    - port: 8000
-      targetPort: 8000
+    - port: 8080
+      targetPort: 8080
   type: NodePort
   selector:
     app: store
@@ -17,15 +17,31 @@ metadata:
   name: nginx-config
 data:
   nginx.conf: |
+
+    # user nobody nogroup;
+    # 'user nobody nobody;' for systems with 'nobody' as a group instead
+    error_log  /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+
+    events {
+      worker_connections 1024; # increase if you have lots of clients
+      accept_mutex off; # set to 'on' if nginx worker_processes > 1
+      # 'use epoll;' to enable for Linux 2.6+
+      # 'use kqueue;' to enable for FreeBSD, OSX
+    }
     http {
+      upstream django {
+        server localhost:8000;
+      }
+
       server {
         listen 8080;
-        location / {
-            proxy_pass http://localhost:8000;
-        }
 
-        location /images/ {
-            root /data;
+        location / {
+          proxy_pass http://django;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header Host $host;
+          proxy_redirect off;
         }
       }
     }
@@ -60,13 +76,13 @@ spec:
             - configMapRef:
                 name: postgres-configuration
         - name: store-nginx
-          image: nginx:1.14.2
+          image: nginx:1.16.1
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
           ports:
-            - containerPort: 80
+            - containerPort: 8080
       initContainers:
         - name: init-store-container
           image: busybox:1.28
