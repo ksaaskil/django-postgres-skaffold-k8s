@@ -2,20 +2,23 @@
 
 ## Introduction
 
-- Introduce Kubernetes
-- Introduce Skaffold
-- What we'll build
-  - Django with Postgres
+Containerization has been a revolution in software development. Technologies such as Docker have allowed developers package their software in packages that can be deployed anywhere, be it your local desktop, public cloud or your company's datacenter.
+
+Containers are often deployed through container orchestration platforms such as [Kubernetes](https://kubernetes.io/). However, when locally developing services, I have always resorted to tools such as [Docker Compose](https://docs.docker.com/compose/) to run multiple related containers with a single command. This is great, but it feels a bit 2000s. My service has its own Kubernetes manifest describing how the service should be deployed, so why can't I use that for local development as well?
+
+Enter [Skaffold](https://skaffold.dev/), a command-line tool for continuous development on Kubernetes. The tool was [open-sourced](https://github.com/GoogleContainerTools/skaffold) by Google in 2018. Skaffold watches your code and, detecting changes, it handles building, pushing and deploying the application to your local Kubernetes installation. You can even use Skaffold to build your CI/CD pipeline, handling the deployment all the way from local workstation to the production cluster.
+
+In this article, we'll see how to develop a Kubernetes-native web application. We'll use Django to bootstrap the application, connect the application to Postgres database, and write Kubernetes manifests to continuously develop the application on a local Minikube cluster.
+
+First we'll install all dependencies. Note that installing e.g. Minikube can take a long time, so feel free to move to the next section while waiting.
+
+All code for this article can be found in [this repository](https://github.com/ksaaskil/django-postgres-skaffold-k8s).
 
 ## Prerequisites
 
-Before getting started, please ensure you have a working installation of [Python 3](https://www.python.org/).
-
-Note that the installing all the prerequisites below may take a long time, so feel free to proceed to the next section while waiting.
-
 ### `kubectl`
 
-First we'll install `kubectl` to interact with our Kubernetes cluster. The exact details will vary depending on your platform, so you may have to follow the instructions [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/) to install `kubectl` on your own machine.
+First we'll install `kubectl` to interact with our Kubernetes cluster. The exact details will vary depending on your platform, so follow the instructions [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/) to install `kubectl` on your own machine.
 
 On [macOS](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-on-macos), `kubectl` can be installed as follows:
 
@@ -85,7 +88,9 @@ $ skaffold
 
 ### `django-admin`
 
-Finally, our example project requires [installing Django](https://www.djangoproject.com/download/) to setup the project. You can install Django in your Python environment with [`pip`](https://pip.pypa.io/en/stable/):
+Finally, our example project requires [installing Django](https://www.djangoproject.com/download/) to bootstrap the project. _Because we're building a Kubernetes-native application, this step is only required for bootstrapping the project_: our code will, at the end of the day, run inside Docker, so if you don't want to install Python 3 and Django, feel free to copy the boilerplate from [the accompanying repository](https://github.com/ksaaskil/django-postgres-skaffold-k8s/tree/master/src/store).
+
+First, ensure you have a working installation of [Python 3](https://www.python.org/). Then, you can install Django in your Python environment with [`pip`](https://pip.pypa.io/en/stable/):
 
 ```bash
 $ pip install Django==3.0.7
@@ -95,10 +100,79 @@ If you don't want to mess with your global Python installation, you may want to 
 
 ## Creating Django project
 
-- Start project
-- Start app
-- Setup database
-- Dockerfile
+The Django application lives inside the `src/` directory of our repository. The project can be created with the `django-admin` command:
+
+```bash
+# Inside src/
+$ django-admin startproject store
+```
+
+We call the project `store`. Move to `store/` directory and add `requirements.txt` containing all the dependencies our application needs:
+
+```txt
+# src/store/requirements.txt
+django
+gunicorn
+psycopg2
+```
+
+Naturally, our server needs `django`. `gunicorn` is used for serving the application and `psycopg2` is the Postgres driver.
+
+If you're willing to install the dependencies in your virtual environment, install:
+
+```bash
+$ pip install -r requirements.txt
+```
+
+Now, let's create an app that we'll use for status-checking:
+
+```bash
+# src/store
+$ python manage.py startapp status
+```
+
+Add the following to `store/urls.py`:
+
+```python
+# src/store/store/urls.py
+from django.urls import path, include
+
+urlpatterns = [path("status/", include("status.urls"))]
+```
+
+This will boostrap the `status` app to `status/` endpoint.
+
+```python
+# src/store/status/urls.py
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.index, name="index"),
+]
+```
+
+In `status/views.py`, add the view to status-check database connection:
+
+```python
+# src/store/status/views.py
+from django.db import connection
+from django.http import HttpResponse
+
+def index(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return HttpResponse({ "message": "OK"}, status=200)
+    except Exception as ex:
+        return HttpResponse({ "message": str(exception) }status=500)
+```
+
+Here we check if the database cursor can execute a `SELECT 1` statement and return 500 for any exception.
+
+### Dockerfile
+
 - nginx
 
 ## Preparing Skaffold

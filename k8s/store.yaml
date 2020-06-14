@@ -60,7 +60,7 @@ kind: Job
 metadata:
   name: django-migrations-job
 spec:
-  backoffLimit: 5
+  backoffLimit: 10
   template:
     spec:
       containers:
