@@ -158,20 +158,60 @@ In `status/views.py`, add the view to status-check database connection:
 ```python
 # src/store/status/views.py
 from django.db import connection
-from django.http import HttpResponse
+from django.http import JsonResponse
 
 def index(request):
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        return HttpResponse({ "message": "OK"}, status=200)
+        return JsonResponse({ "message": "OK"}, status=200)
     except Exception as ex:
-        return HttpResponse({ "message": str(exception) }status=500)
+        return JsonResponse({ "error": str(ex) }, status=500)
+
 ```
 
 Here we check if the database cursor can execute a `SELECT 1` statement and return 500 for any exception.
 
+### Setting up Postgres
+
+```python
+# src/store/settings.py
+import os
+
+# ... everything else
+
+POSTGRES_CONFIG = {
+    "username": os.environ.get("POSTGRES_USER", "postgres"),
+    "db_name": os.environ.get("POSTGRES_DB", "store"),
+    "host": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
+    "password": os.environ.get("POSTGRES_PASSWORD", ""),
+    "port": os.environ.get("POSTGRES_PORT", 5432),
+}
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": POSTGRES_CONFIG["db_name"],
+        "USER": POSTGRES_CONFIG["username"],
+        "PASSWORD": POSTGRES_CONFIG["password"],
+        "HOST": POSTGRES_CONFIG["host"],
+        "PORT": POSTGRES_CONFIG["port"],
+    }
+}
+```
+
 ### Dockerfile
+
+```Dockerfile
+# src/store/Dockerfile
+FROM python:3
+ENV PYTHONUNBUFFERED 1
+RUN mkdir /store
+WORKDIR /store
+COPY . /store/
+RUN pip install -r requirements.txt
+CMD ["gunicorn", "store.wsgi"]
+```
 
 - nginx
 
