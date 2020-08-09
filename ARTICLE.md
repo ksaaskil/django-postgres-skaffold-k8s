@@ -427,6 +427,66 @@ $ minikube dashboard
 
 you should find the ConfigMap and Secret in the created resources. If you modify your deployment manifests, Skaffold should automatically take care of updating the deployment so from now on, you can keep `skaffold dev` running in the background.
 
+### Persistent volumes and volume claims
+
+Next we'll setup volumes for our Postgres installation. This part is not required if you only use Postgres for local development with small data volumes. If you're deploying Postgres for production in Kubernetes, you need to think carefully where and how to persist data.
+
+Persistent volume (PV) [documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) describe it as "a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using [Storage Classes](https://kubernetes.io/docs/concepts/storage/storage-classes/)." Storage classes can be used to provision storage on-demand from, say, [Amazon Elastic Block Store](https://aws.amazon.com/ebs/) or [Google Cloud Persistent Disk](https://cloud.google.com/persistent-disk). In this tutorial, we'll provision local storage upfront without storage classes.
+
+In this tutorial, we'll provision storage from the host with _hostPath_ persistent volume. As the [docs explain](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/), "In a production cluster, you would instead provision a network resource like a Google Compute Engine persistent disk, an NFS share, or an Amazon Elastic Block Store volume."
+
+Here's how to use _hostPath_ to provision storage from the single-node cluster's host:
+
+```yaml
+# k8s/postgres.yaml
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt1/postgres-data
+```
+
+We specify that a persistent volume called `postgres-pv` of 1 GB capacity should be provisioned at `/mnt1/postgres-data` on the cluster's node. Access mode is defined as `ReadWriteOnce`, meaning that the volume can be mounted by a single node for reading and writing.
+
+Once we get Postgres running, we can ssh into your Minikube node with `minikube ssh` and execute `ls /mnt1/postgres-data` to browse the data stored by Postgres.
+
+Now that we have provisioned storage, we need to create a _persistent volume claim_ to request access to it. Volume claims are similar to how pods request resources from nodes. Instead of requesting CPU or memory, volume claims request specific storage size ("5 GB") and specific access mode. Let's create a volume claim to request 500 MB from `postgres-pv` volume:
+
+```yaml
+# k8s/postgres.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  volumeName: postgres-pv
+```
+
+Now we can use this claim named `postgres-pvc` to mount the claimed storage to our Postgres pod.
+
+### Stateful set
+
+### Service
+
 ## Troubleshooting
 
 On macOS Mojave, I had to install C headers with:
