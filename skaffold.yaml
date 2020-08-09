@@ -1,5 +1,7 @@
 apiVersion: skaffold/v2beta4
 kind: Config
+metadata:
+  name: learning-local-kubernetes-development-with-skaffold
 build:
   artifacts:
     - image: django-store

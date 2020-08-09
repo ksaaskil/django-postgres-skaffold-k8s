@@ -320,7 +320,53 @@ This concludes Part 2 of our tutorial for local development on Skaffold. In the 
 
 ## Part 3
 
-## Preparing Skaffold
+---
+title: How to deploy Postgres on Kubernetes with Skaffold
+published: false
+description: Learn Kubernetes concepts such as config maps, secrets, persistent volumes and claims, stateful sets, and services
+tags: postgres,kubernetes,tutorial,skaffold
+series: Learning local development on Kubernetes with Skaffold
+---
+
+Hello again! In this part of the series, we'll finally get our hands dirty using [Skaffold](https://skaffold.dev/) to build, push and deploy applications on [Kubernetes](https://kubernetes.io/). In this part, we'll deploy a [Postgres](https://www.postgresql.org/) database on our local Minikube cluster. Along the way, we'll learn Kubernetes concepts such as [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/), [Persistent Volumes and Persistent Volume Claims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/), [StatefulSets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/), and [Services](https://kubernetes.io/docs/concepts/services-networking/service/).
+
+In [Part 1](https://dev.to/ksaaskil/getting-started-with-local-development-on-kubernetes-with-skaffold-1plc) of this series, we installed all dependencies required for this tutorial. Most notably, you'll need a [Skaffold](https://skaffold.dev/docs/install/) installation and a Kubernetes cluster. I assume you're using [Minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/), but you could also use other [local clusters](https://skaffold.dev/docs/environment/local-cluster/) such as [Docker Desktop](https://docs.docker.com/docker-for-mac/kubernetes/).
+
+You can find all code accompanying this series in [this GitHub repository](https://github.com/ksaaskil/django-postgres-skaffold-k8s).
+
+## Configuring Skaffold
+
+First we'll need to configure Skaffold by creating a [`skaffold.yaml`](https://skaffold.dev/docs/references/yaml/) file in our repository. I suggest you take a quick glance at the link to get an overview of Skaffold's configuration.
+
+Like any resource definition in Kubernetes, `skaffold.yaml` has `apiVersion`, `kind`, and `metadata` fields. We therefore add the following to `skaffold.yaml`:
+
+```yaml
+# skaffold.yaml
+apiVersion: skaffold/v2beta4
+kind: Config
+metadata:
+  name: learning-local-kubernetes-development-with-skaffold
+```
+
+The meat of Skaffold is in `build` and `deploy` fields. For now, we assume there are no artifacts to build and add the following below the definition above:
+
+```yaml
+build:
+  artifacts: []
+```
+
+In `deploy`, we tell Skaffold where to find the Kubernetes manifests and how to process them. We'll tell Skaffold to deploy with `kubectl`, look for manifests in a folder called `k8s/` and to use the `minikube` context for deployment with the following configuration:
+
+```yaml
+# skaffold.yaml
+deploy:
+  kubectl:
+    manifests:
+      - k8s/*.yaml
+  kubeContext: minikube
+```
+
+Both `manifests` and `kubeContext` are set to above values by default, but I think it's always better to be explicit with such things. Instead of deploying bare Kubernetes manifests with [`kubectl`](https://kubernetes.io/docs/reference/kubectl/overview/), you could also tell Skaffold to process your manifests with [`kustomize`](https://kustomize.io/) or use [`helm`](https://helm.sh/) charts.
 
 ## Postgres deployment
 
