@@ -368,7 +368,64 @@ deploy:
 
 Both `manifests` and `kubeContext` are set to above values by default, but I think it's always better to be explicit with such things. Instead of deploying bare Kubernetes manifests with [`kubectl`](https://kubernetes.io/docs/reference/kubectl/overview/), you could also tell Skaffold to process your manifests with [`kustomize`](https://kustomize.io/) or use [`helm`](https://helm.sh/) charts.
 
+Instead of writing `skaffold.yaml` yourself, you can also use [`skaffold init`](https://skaffold.dev/docs/pipeline-stages/init/) command to auto-generate `build` and `deploy` config.
+
 ## Postgres deployment
+
+### `ConfigMap` and `Secrets`
+
+We'll put our Kubernetes manifest for the Postgres deployment in `k8s/postgres.yaml`. We'll first include non-confidential Postgres configuration data in a ConfigMap. By storing configuration in ConfigMap, we can easily re-use the configuration in other services using our Postgres cluster.
+
+For Postgres, we'll need to define the Postgres user name and the database to use. We add these as configuration variables `POSTGRES_USER` and `POSTGRES_DB` in `k8s/postgres.yaml`:
+
+```yaml
+# k8s/postgres.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-configuration
+data:
+  POSTGRES_DB: "django-db"
+  POSTGRES_USER: "postgres-user"
+```
+
+We'll see later how to use this configuration.
+
+Postgres also wants us to configure the password that can be used to access the database. Such confidential data should be stored as [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/). Kubernetes wants us to base64-encode our secrets, so we'll have to do that first. Assuming that we choose `"super-secret"` as our password, here's how to base64-encode:
+
+```
+$ echo -n "super-secret" | base64
+c3VwZXItc2VjcmV0
+# Or with Python:
+$ python -c "import base64; print(base64.b64encode('super-secret'));"
+c3VwZXItc2VjcmV0
+```
+
+For the purposes of this tutorial, I'll simply add the base64-encoded secret in `postgres.yaml`:
+
+```yaml
+# k8s/postgres.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: Opaque
+data:
+  # This should **not** be in version control
+  password: c3VwZXItc2VjcmV0
+```
+
+In any real-world use, you probably wouldn't add secrets like this to version control. You would put the secrets in their own `secrets.yaml` file and keep it out of version control or read secrets at deployment time from services such as [Vault](https://www.vaultproject.io/).
+
+At this point, we can see if our Skaffold deployment works by running `skaffold dev`. Skaffold should discover `postgres.yaml` and deploy our ConfigMap and Secret. If you then open Minikube dashboard with
+
+```bash
+$ minikube dashboard
+```
+
+you should find the ConfigMap and Secret in the created resources. If you modify your deployment manifests, Skaffold should automatically take care of updating the deployment so from now on, you can keep `skaffold dev` running in the background.
 
 ## Troubleshooting
 
