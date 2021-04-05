@@ -135,11 +135,13 @@ in the accompanying repository to ensure everything works. In the next part of t
 ## Part 2
 
 ---
+
 title: Setting up Django app with Postgres database and health check
 published: false
 description: Second part of the tutorial on developing a Django application backed by Postgres on local Kubernetes
 tags: python,kubernetes,tutorial
 series: Learning local development on Kubernetes with Skaffold
+
 ---
 
 In [Part 1](https://dev.to/ksaaskil/getting-started-with-local-development-on-kubernetes-with-skaffold-1plc) of this series, we installed all tools required for developing our Django application on local Kubernetes with [Skaffold](https://skaffold.dev/). In this part, we'll create the Django application. In the next part, we'll finally get to the fun part: defining Kubernetes manifests and Skaffold configuration file.
@@ -312,7 +314,7 @@ http {
 }
 ```
 
-Here we simply hard-code the proxy to forward requests to `localhost:8000`, where our Django app will be running. In production usage, we would read the address from environment variables at deploy time. 
+Here we simply hard-code the proxy to forward requests to `localhost:8000`, where our Django app will be running. In production usage, we would read the address from environment variables at deploy time.
 
 ## Conclusion
 
@@ -321,11 +323,13 @@ This concludes Part 2 of our tutorial for local development on Skaffold. In the 
 ## Part 3
 
 ---
+
 title: How to deploy Postgres on Kubernetes with Skaffold
-published: false
+published: true
 description: Learn Kubernetes concepts such as config maps, secrets, persistent volumes and claims, stateful sets, and services
 tags: postgres,kubernetes,tutorial,skaffold
 series: Learning local development on Kubernetes with Skaffold
+
 ---
 
 Hello again! In this part of the series, we'll finally get our hands dirty using [Skaffold](https://skaffold.dev/) to build, push and deploy applications on [Kubernetes](https://kubernetes.io/). In this part, we'll deploy a [Postgres](https://www.postgresql.org/) database on our local Minikube cluster. Along the way, we'll learn Kubernetes concepts such as [ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/), [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/), [Persistent Volumes and Persistent Volume Claims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/), [StatefulSets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/), and [Services](https://kubernetes.io/docs/concepts/services-networking/service/).
@@ -485,7 +489,114 @@ Now we can use this claim named `postgres-pvc` to mount the claimed storage to o
 
 ### Stateful set
 
+We're ready to declare how to deploy Postgres itself. Just for fun, we'll deploy Postgres using [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/). StatefulSet manages not only the deployment and scaling of pods but also "provides guarantees about the ordering and uniqueness of these pods". In particular, StatefulSet provides unique network identifiers, persistent storage, graceful deployment and scaling, and automated rolling updates. For example, if you were deploying [Apache Cassandra](https://cassandra.apache.org/), an open-source distributed database, on Kubernetes, StatefulSet would guarantee your pods would have stable identifiers such as `cassandra-1`, `cassandra-2`, etc. you could use to communicate between pods even after rescheduling. See [here](https://kubernetes.io/docs/tutorials/stateful-application/cassandra/) for an example how to deploy Cassandra on Kubernetes.
+
+In our case of Postgres, we are dealing with a centralized, non-distributed database, so we'll only have one pod in our StatefulSet. However, StatefulSet is still a very useful and powerful concept for any stateful application.
+
+We'll declare StatefulSet as follows:
+
+```yaml
+# k8s/postgres.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-statefulset
+spec:
+  serviceName: "postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres # has to match .spec.template.metadata.labels
+  template: ...
+```
+
+As expected, we use `kind: StatefulSet`. In `spec`, we declare `serviceName` to be `postgres`. You can read [here](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-network-id) how `serviceName` controls the DNS for pods in the StatefulSet. Do not confuse this with how you would use [Service](https://kubernetes.io/docs/concepts/services-networking/service/) to expose Postgres to other applications in the cluster or to the outside world. In the next section, we'll see how to use Service to expose the StatefulSet as a network service.
+
+After `serviceName`, we set `replicas` equal to one as we're dealing with a non-replicated, centralized database. The `.spec.selector` field defines which pods belong to the StatefulSet.
+
+The spec for pods in the StatefulSet is defined in `.spec.template` as follows:
+
+```yaml
+# k8s/postgres.yaml
+...
+spec:
+  ...
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:12
+          envFrom:
+            - configMapRef:
+                name: postgres-configuration
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+          ports:
+            - containerPort: 5432
+              name: postgresdb
+          volumeMounts:
+            - name: postgres-volume-mount
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - "-c"
+                - "psql -U$POSTGRES_USER -d$POSTGRES_DB -c 'SELECT 1'"
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - "-c"
+                - "psql -U$POSTGRES_USER -d$POSTGRES_DB -c 'SELECT 1'"
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+      volumes:
+        - name: postgres-volume-mount
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+```
+
+We first set pod labels to `postgres` to match the selector in the StatefulSet. In `.spec.template.spec`, we define our pods to have a single container running `postgres:12` image from [DockerHub](https://hub.docker.com/_/postgres/). The pod uses environment variables from the `postgres-configuration` ConfigMap and `postgres-credentials` Secret, both of which we defined above. We then set the pod to expose port 5432. In `volumeMounts`, we mount a volume named `postgres-volume-mount` to `/var/lib/postgresql/data`, the folder used by Postgres for storing data. This volume is defined in `.spec.template.spec.volumes`, where we use the `postgres-pvc` volume claim defined above.
+
+Finally, we also set `readinessProbe` as well as `livenessProbe` to let Kubernetes monitor the pod's health. You can read more about probes [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
+
 ### Service
+
+Having declared our StatefulSet, we'll finally need to define a [Service](https://kubernetes.io/docs/concepts/services-networking/service/) to expose the StatefulSet as a network application to other applications. Compared to above, this is simple enough:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  ports:
+    - port: 5432
+      name: postgres
+  type: NodePort
+  selector:
+    app: postgres
+```
+
+In our service, we expose port 5432 from the pod as `NodePort`. You can read more about different options [here](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). Choosing `NodePort` will let us contact the service from outside the cluster. In production, you of course very carefully want to consider if you want your database to be exposed outside of the cluster.
+
+### Did it work?
+
+If you had `skaffold dev --port-forward` running throughout this tutorial, you should now have Postgres running in your Minikube cluster. You can verify this by, for example, running `minikube dashboard` to browse the resources in Minikube and hopefully see everything glowing green. If anything went wrong, please let me know in the comments!
+
+## Conclusion
+
+That concludes the tutorial on how to get Postgres running on Kubernetes. In the next and final part, we'll finally deploy the Django application we built in Part 2, backed by Postgres. See you then!
 
 ## Troubleshooting
 
