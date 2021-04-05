@@ -13,7 +13,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: store
+  name: store-deployment
 spec:
   selector:
     matchLabels:
@@ -48,13 +48,7 @@ spec:
           image: busybox:1.28
           # Ugly hack to wait for fixed time before starting Django
           command: ["sh", "-c", "echo Sleeping... && sleep 1 && echo Done."]
-      volumes:
-        - name: nginx-config
-          configMap:
-            name: nginx-config
 ---
-# Ugly hack to run Django migrations with a Kubernetes job
-# Should not be run automatically in any real environment
 apiVersion: batch/v1
 kind: Job
 metadata:
