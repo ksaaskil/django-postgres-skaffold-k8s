@@ -621,7 +621,7 @@ title: How to deploy Django on Kubernetes with Skaffold for development and prod
 published: true
 description: Learn Kubernetes concepts such as deployments, services, and jobs
 tags: django,kubernetes,beginner,skaffold
-series: Learning local development on Kubernetes with Skaffold
+series: How to develop Kubernetes-native applications with Skaffold
 ---
 
 In this article, we'll see how to deploy the Django application built in [Part 2](https://dev.to/ksaaskil/setting-up-django-app-with-postgres-database-and-health-check-2cpd) of this series to local Kubernetes cluster. We'll be using [Skaffold](https://skaffold.dev/) for the deployment. Skaffold offers support for multiple [profiles](https://skaffold.dev/docs/environment/profiles/), making it useful both local development with hot code reloading as well as production deployments.
@@ -652,7 +652,7 @@ CMD ["gunicorn", "store.wsgi"]
 
 We use [Gunicorn](https://gunicorn.org/) server for serving the Django application as instructed in [Django documentation](https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/gunicorn/).
 
-Now we want to tell Skaffold to build this Docker image. Let's modify the `skaffold.yaml` created in Part 3 as follows:
+Now we want to tell Skaffold to build this Docker image. Let's modify the `skaffold.yaml` we created in Part 3 as follows:
 
 ```yaml
 # skaffold.yaml
@@ -666,15 +666,14 @@ build:
       context: src/store
 deploy:
   kubectl:
-
     manifests:
       - k8s/*.yaml
   kubeContext: minikube # Default
 ```
 
-The important part here is the list of `artifacts` under `build`. We refer to our Django application as `django-store` image and use `src/store` as its build context. Run `skaffold build` and Skaffold should build the Docker image.
+The important part here is the list of `artifacts` under `build`. We name the Docker image for our Django application as `django-store` and use `src/store` as its build context. Run `skaffold build` and Skaffold should build the Docker image.
 
-Before deployments, tou should set [`kubeContext`](https://skaffold.dev/docs/environment/kube-context/) in `skaffold.yaml` to point to the Kubernetes cluster you want to use. If you're using Docker Desktop, you'd use `kubeContext: docker-for-desktop`. When deploying to production, you'd override the `kubeContext` with a suitable Skaffold profile.
+Before deployments, you should set [`kubeContext`](https://skaffold.dev/docs/environment/kube-context/) in `skaffold.yaml` to point to the Kubernetes cluster you want to use. If you're using Docker Desktop, you'd use `kubeContext: docker-for-desktop`. When deploying to production, you should override the `kubeContext` with a suitable Skaffold profile.
 
 Before moving to Kubernetes deployments, we need to add a reverse proxy before our Gunicorn server. We use an [nginx](https://nginx.org/en/) proxy server with custom `nginx.conf`. In production usage, you'd probably use something like [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/) instead.
 
