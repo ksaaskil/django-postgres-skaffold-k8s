@@ -4,10 +4,10 @@ Example [Django](https://www.djangoproject.com/) application running on [Postgre
 
 ## ⚠️ Pre-requisites
 
-- [Minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/)
+- [Minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/) or [Docker Desktop](https://www.docker.com/products/kubernetes)
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- [`kustomize`](https://github.com/kubernetes-sigs/kustomize)
 - [Skaffold](https://skaffold.dev/)
+- Optional: [`kustomize`](https://github.com/kubernetes-sigs/kustomize)
 
 ## Getting started
 
@@ -20,16 +20,29 @@ $ mkdir ~/postgres-data
 $ minikube mount ~/postgres-data:/mnt1/postgres-data
 ```
 
-Run in build and deploy in development mode:
+Build images:
+
+```bash
+$ skaffold build
+```
+
+Deploy in development mode with hot reloading of code:
 
 ```bash
 $ skaffold dev [--port-forward]
 ```
 
+You can test the deployment by making a request to `localhost:8080`:
+
+```bash
+$ curl http://localhost:8080/status/
+{ "message": "OK" }
+```
+
 Run build and deploy once:
 
 ```bash
-$ skaffold run
+$ skaffold run [--tail] [--port-forward]
 ```
 
 Delete resources:
